@@ -5,8 +5,9 @@
       class="slides"
       :class="direction"
       :style="{ transform }"
-      @panmove="panMove"
-      @panend="panEnd"
+      @panstart="onPanStart"
+      @panmove="onPanMove"
+      @panend="onPanEnd"
     >
       <slot />
     </div>
@@ -23,6 +24,11 @@ export default {
     direction: {
       type: String,
       default: 'row' // row, column
+    },
+
+    threshold: {
+      type: Number,
+      default: 20
     }
   },
 
@@ -36,26 +42,86 @@ export default {
   },
 
   methods: {
-    panMove(e) {
-      this.transform = this.direction === 'row'
-        ? `translateX(${this.getOffset(e)}px)`
-        : `translateY(${this.getOffset(e)}px)`
+    onPanStart(e) {
+      this.RAF = false
+      this.prevPanTime = this.panTime = e.timeStamp
+      this.prevPanPos = this.panPos = this.direction === 'row' ? e.detail.clientX : e.detail.clientY
+      this.currOffset = this.offset
+      this.clientSize = this.direction === 'row' ? this.$refs.slides.clientWidth : this.$refs.slides.clientHeight
+      this.scrollSize = this.direction === 'row' ? this.$refs.slides.scrollWidth : this.$refs.slides.scrollHeight
+      this.minOffset = this.clientSize - this.scrollSize
     },
 
-    panEnd(e) {
-      this.offset = this.getOffset(e)
+    onPanMove(e) {
+      const panPos = this.direction === 'row' ? e.detail.clientX : e.detail.clientY
+
+      if (panPos !== this.prevPanPos) {
+        this.prevPanTime = this.panTime
+        this.prevPanPos = this.panPos
+        this.panTime = e.timeStamp
+        this.panPos = panPos
+
+        this.currOffset = this.getOffset(this.offset + (this.direction === 'row' ? e.detail.offsetX : e.detail.offsetY))
+
+        this.transform = this.direction === 'row'
+          ? `translateX(${this.currOffset}px)`
+          : `translateY(${this.currOffset}px)`
+      }
     },
 
-    getOffset(e) {
-      return this.direction === 'row'
-        ? Math.max(
-          Math.min(this.offset + e.detail.offsetX, 0),
-          -(this.$refs.slides.scrollWidth - this.$refs.slides.clientWidth)
-        )
-        : Math.max(
-          Math.min(this.offset + e.detail.offsetY, 0),
-          -(this.$refs.slides.scrollHeight - this.$refs.slides.clientHeight)
-        )
+    onPanEnd(e) {
+      if (this.currOffset !== this.offset) {
+        let offset = this.offset
+        const s = Math.abs(this.panPos - this.prevPanPos)
+        const v = s / Math.abs(e.timeStamp - this.prevPanTime)
+        console.log(v)
+
+        if (Math.abs(this.currOffset - this.offset) >= this.threshold || v >= 0.5) {
+          offset = this.getOffset(
+            (this.currOffset > this.offset ? Math.ceil : Math.floor)(this.currOffset / this.clientSize) *
+            this.clientSize
+          )
+        }
+
+        this.animate(this.currOffset, offset, v >= 0.5 ? v : 0.5)
+      }
+    },
+
+    animate(from, to, v0) {
+      console.log(to)
+      this.RAF = true
+      const d = Math.abs(to - from)
+      let start
+
+      const animate = now => {
+        if (!start) {
+          start = now
+        } else {
+          const t = now - start
+          let s = Math.abs(Math.round(v0 * t - 0.15 * t * t / 2))
+
+          if (s > d) {
+            s = d
+          }
+
+          this.offset = from + (from > to ? -s : s)
+          console.log(this.offset)
+
+          this.transform = this.direction === 'row'
+            ? `translateX(${this.offset}px)`
+            : `translateY(${this.offset}px)`
+        }
+
+        if (this.RAF && this.offset !== to) {
+          requestAnimationFrame(animate)
+        }
+      }
+
+      requestAnimationFrame(animate)
+    },
+
+    getOffset(offset) {
+      return Math.max(Math.min(offset, 0), this.minOffset)
     }
   }
 }
