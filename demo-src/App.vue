@@ -25,7 +25,7 @@ export default {
 .carousel {
   width: 320px;
   height: 150px;
-  border: 1px solid green;
+  border: 3px solid green;
   /* overflow: hidden; */
 }
 
