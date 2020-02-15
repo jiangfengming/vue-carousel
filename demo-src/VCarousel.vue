@@ -125,7 +125,6 @@ export default {
       if (this.currOffset !== this.offset) {
         let offset
         let v0 = Math.abs(this.panPos - this.prevPanPos) / Math.abs(e.timeStamp - this.prevPanTime)
-        console.log(v0)
         const nextOffset = this.getOffset(this.currOffset, this.currOffset < this.offset ? 'left' : 'right')
 
         if (v0 >= a * Math.sqrt(2 * Math.abs(this.nextOffset - this.currOffset) / a)) {
@@ -149,7 +148,6 @@ export default {
     },
 
     animate(from, to, v0) {
-      console.log(from, to, v0)
       this.RAF = true
       this.offset = from
       const s1 = Math.abs(to - from)
@@ -172,7 +170,6 @@ export default {
             : Math.abs(Math.round(v0 * t - a * t * t / 2))
 
           this.offset = from + (from > to ? -s : s)
-          console.log(t, s, this.offset)
 
           this.transform = this.isHorizontal
             ? `translateX(${this.offset}px)`
