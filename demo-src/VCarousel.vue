@@ -15,7 +15,7 @@
 </template>
 
 <script>
-// const a = 0.1
+const a = 0.08
 
 import panEvents from 'pan-events'
 
@@ -51,11 +51,11 @@ export default {
 
   mounted() {
     panEvents(this.$refs.slides)
-    this.calcTransitionOffset()
+    this.calcTransitionOffsets()
   },
 
   methods: {
-    calcTransitionOffset() {
+    calcTransitionOffsets() {
       this.transitionOffsets = []
       const $slides = this.$refs.slides
       const slides = $slides.children
@@ -123,27 +123,42 @@ export default {
 
     onPanEnd(e) {
       if (this.currOffset !== this.offset) {
-        let offset = this.offset
-        const s = Math.abs(this.panPos - this.prevPanPos)
-        const v = s / Math.abs(e.timeStamp - this.prevPanTime)
-        console.log(v)
+        let offset
+        let v0 = Math.abs(this.panPos - this.prevPanPos) / Math.abs(e.timeStamp - this.prevPanTime)
+        console.log(v0)
+        const nextOffset = this.getOffset(this.currOffset, this.currOffset < this.offset ? 'left' : 'right')
 
-        // const t = 300
+        if (v0 >= a * Math.sqrt(2 * Math.abs(this.nextOffset - this.currOffset) / a)) {
+          offset = nextOffset
+        } else {
+          const nearOffset = this.getOffset(this.currOffset, 'near')
 
-        // if (v * t - a * t * t / 2 >= s)
-        if (Math.abs(this.currOffset - this.offset) >= this.threshold || v >= 0.5) {
-          offset = this.getOffset(this.currOffset, this.currOffset < this.offset ? 'left' : 'right')
+          if (Math.abs(this.currOffset - this.offset) < this.threshold ||
+              this.currOffset < this.offset && nearOffset < this.offset ||
+              this.currOffset > this.offset && nearOffset > this.offset) {
+            offset = nearOffset
+          } else {
+            offset = nextOffset
+          }
+
+          v0 = a * Math.sqrt(2 * Math.abs(offset - this.currOffset) / a)
         }
 
-        this.animate(this.currOffset, offset, v >= 0.5 ? v : 0.5)
+        this.animate(this.currOffset, offset, v0)
       }
     },
 
     animate(from, to, v0) {
-      console.log(to)
+      console.log(from, to, v0)
       this.RAF = true
       this.offset = from
-      const d = Math.abs(to - from)
+      const s1 = Math.abs(to - from)
+      const t1 = (v0 - Math.sqrt(r(v0 * v0 - 2 * a * s1))) / a
+
+      function r(n) {
+        return Math.round(n * 100000) / 100000
+      }
+
       let start
 
       const animate = now => {
@@ -151,14 +166,13 @@ export default {
           start = now
         } else {
           const t = now - start
-          let s = Math.abs(Math.round(v0 * t - 0.15 * t * t / 2))
 
-          if (s > d) {
-            s = d
-          }
+          const s = t >= t1
+            ? s1
+            : Math.abs(Math.round(v0 * t - a * t * t / 2))
 
           this.offset = from + (from > to ? -s : s)
-          console.log(this.offset)
+          console.log(t, s, this.offset)
 
           this.transform = this.isHorizontal
             ? `translateX(${this.offset}px)`
@@ -181,7 +195,10 @@ export default {
       }
 
       const right = [...this.transitionOffsets].reverse().find(o => o >= offset)
-      return dir === 'left' ? left : right
+
+      return dir === 'near'
+        ? Math.abs(offset - left) < Math.abs(offset - right) ? left : right
+        : dir === 'left' ? left : right
     }
   }
 }
