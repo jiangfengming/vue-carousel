@@ -3,8 +3,28 @@
 </template>
 
 <script>
+import elementResizeDetectorMaker from 'element-resize-detector'
+
 export default {
-  name: 'VSlide'
+  name: 'VSlide',
+
+  mounted() {
+    this.$parent.$emit('resize')
+
+    this.resizeDetector = elementResizeDetectorMaker({
+      strategy: 'scroll',
+      callOnAdd: false
+    })
+
+    this.resizeDetector.listenTo(this.$el, () => {
+      this.$parent.$emit('resize')
+    })
+  },
+
+  destroyed() {
+    this.resizeDetector.uninstall(this.$el)
+    this.$parent.$emit('resize')
+  }
 }
 </script>
 

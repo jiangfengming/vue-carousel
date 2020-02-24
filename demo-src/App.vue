@@ -1,6 +1,6 @@
 <template>
   <main>
-    <v-carousel class="carousel">
+    <v-carousel class="carousel" :current-page.sync="currentPage" :total-pages.sync="totalPages">
       <v-slide class="slide">slide 1</v-slide>
       <v-slide class="slide">slide 2</v-slide>
       <v-slide class="slide">slide 3</v-slide>
@@ -8,6 +8,8 @@
       <v-slide class="slide">slide 5</v-slide>
       <v-slide class="slide">slide 6</v-slide>
     </v-carousel>
+
+    <div>{{ currentPage }} / {{ totalPages }}</div>
   </main>
 </template>
 
@@ -17,7 +19,12 @@ import VSlide from './VSlide'
 
 export default {
   el: '#app',
-  components: { VCarousel, VSlide }
+  components: { VCarousel, VSlide },
+
+  data: () => ({
+    currentPage: 1,
+    totalPages: 1
+  })
 }
 </script>
 

@@ -53,6 +53,7 @@
     "webpack-dev-server": "^3.10.1"
   },
   "dependencies": {
+    "element-resize-detector": "^1.2.1",
     "pan-events": "^0.1.4"
   }
 }

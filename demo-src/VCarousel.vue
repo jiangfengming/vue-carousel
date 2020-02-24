@@ -15,9 +15,10 @@
 </template>
 
 <script>
-const a = 0.08
-
 import panEvents from 'pan-events'
+import elementResizeDetectorMaker from 'element-resize-detector'
+
+const a = 0.08
 
 export default {
   name: 'VCarousel',
@@ -31,7 +32,17 @@ export default {
     threshold: {
       type: Number,
       default: 20
-    }
+    },
+
+    totalPages: {
+      type: Number
+    },
+
+    currentPage: {
+      type: Number
+    },
+
+    autoplay: Boolean
   },
 
   data: () => ({
@@ -49,54 +60,88 @@ export default {
     }
   },
 
+  watch: {
+    currentPage: 'goto'
+  },
+
   mounted() {
     panEvents(this.$refs.slides)
     this.calcTransitionOffsets()
+    this.$on('resize', this.onResize)
+
+    this.resizeDetector = elementResizeDetectorMaker({
+      strategy: 'scroll',
+      callOnAdd: false
+    })
+
+    this.resizeDetector.listenTo(this.$el, this.onResize)
+    this.goto(this.currentPage)
+  },
+
+  beforeDestroy() {
+    this.$off('resize')
+    this.resizeDetector.uninstall(this.$el)
   },
 
   methods: {
+    onResize() {
+      console.log('onResize')
+      const currOffsetIndex = this.transitionOffsets.indexOf(this.offset)
+      this.calcTransitionOffsets()
+
+      if (currOffsetIndex !== -1) {
+        this.goto(currOffsetIndex + 1)
+      }
+    },
+
     calcTransitionOffsets() {
       this.transitionOffsets = []
       const $slides = this.$refs.slides
       const slides = $slides.children
 
-      if (!slides.length) {
-        return
-      }
+      if (slides.length) {
+        const clientSize = this.isHorizontal ? $slides.clientWidth : $slides.clientHeight
+        const scrollSize = this.isHorizontal ? $slides.scrollWidth : $slides.scrollHeight
+        const maxOffset = scrollSize - clientSize
+        const parentOffset = this.isHorizontal ? $slides.offsetLeft : $slides.offsetTop
 
-      const clientSize = this.isHorizontal ? $slides.clientWidth : $slides.clientHeight
-      const scrollSize = this.isHorizontal ? $slides.scrollWidth : $slides.scrollHeight
-      const minOffset = scrollSize - clientSize
-      const parentOffset = this.isHorizontal ? $slides.offsetLeft : $slides.offsetTop
+        let prevOffset = 0
+        let nextOffset = 0
 
-      let prevOffset = 0
-      let nextOffset = 0
+        for (let i = 0; i < slides.length; i++) {
+          const slide = slides[i]
+          const offset = (this.isHorizontal ? slide.offsetLeft : slide.offsetTop) - parentOffset
 
-      for (let i = 0; i < slides.length; i++) {
-        const slide = slides[i]
-        const offset = (this.isHorizontal ? slide.offsetLeft : slide.offsetTop) - parentOffset
+          if (i === 0) {
+            this.transitionOffsets.push(-offset)
+            prevOffset = offset
+          } else if (i === 1 || offset - prevOffset <= clientSize) {
+            nextOffset = offset
+          } else {
+            if (nextOffset < maxOffset) {
+              this.transitionOffsets.push(-nextOffset)
+            }
 
-        if (i === 0) {
-          this.transitionOffsets.push(-offset)
-          prevOffset = offset
-        } else if (offset >= minOffset) {
-          this.transitionOffsets.push(-minOffset)
-          break
-        } else if (i === 1 || offset - prevOffset <= clientSize) {
-          nextOffset = offset
-        } else {
-          this.transitionOffsets.push(-nextOffset)
-          prevOffset = nextOffset
-          nextOffset = offset
+            if (offset >= maxOffset) {
+              this.transitionOffsets.push(-maxOffset)
+              break
+            } else {
+              prevOffset = nextOffset
+              nextOffset = offset
+            }
+          }
         }
       }
+
+      this.$emit('update:totalPages', this.transitionOffsets.length)
     },
 
     onPanStart(e) {
-      this.RAF = false
+      this.panning = true
+      this.raf = false
       this.prevPanTime = this.panTime = e.timeStamp
       this.prevPanPos = this.panPos = this.isHorizontal ? e.detail.clientX : e.detail.clientY
-      this.currOffset = this.offset
+      this.panOffset = this.offset
     },
 
     onPanMove(e) {
@@ -109,47 +154,51 @@ export default {
         this.panPos = panPos
         const offset = this.offset + (this.isHorizontal ? e.detail.offsetX : e.detail.offsetY)
 
-        this.currOffset = offset > this.transitionOffsets[0]
+        this.panOffset = offset > this.transitionOffsets[0]
           ? this.transitionOffsets[0]
           : offset < this.transitionOffsets[this.transitionOffsets.length - 1]
             ? this.transitionOffsets[this.transitionOffsets.length - 1]
             : offset
 
         this.transform = this.isHorizontal
-          ? `translateX(${this.currOffset}px)`
-          : `translateY(${this.currOffset}px)`
+          ? `translateX(${this.panOffset}px)`
+          : `translateY(${this.panOffset}px)`
       }
     },
 
     onPanEnd(e) {
-      if (this.currOffset !== this.offset) {
+      this.panning = false
+
+      if (this.panOffset !== this.offset || this.transitionOffsets.indexOf(this.offset) === -1) {
         let offset
         let v0 = Math.abs(this.panPos - this.prevPanPos) / Math.abs(e.timeStamp - this.prevPanTime)
-        const nextOffset = this.getOffset(this.currOffset, this.currOffset < this.offset ? 'left' : 'right')
+        const nextOffset = this.getOffset(this.panOffset, this.panOffset < this.offset ? 'left' : 'right')
 
-        if (v0 >= a * Math.sqrt(2 * Math.abs(this.nextOffset - this.currOffset) / a)) {
+        if (v0 >= a * Math.sqrt(2 * Math.abs(this.nextOffset - this.panOffset) / a)) {
           offset = nextOffset
         } else {
-          const nearOffset = this.getOffset(this.currOffset, 'near')
+          const nearOffset = this.getOffset(this.panOffset, 'near')
 
-          if (Math.abs(this.currOffset - this.offset) < this.threshold ||
-              this.currOffset < this.offset && nearOffset < this.offset ||
-              this.currOffset > this.offset && nearOffset > this.offset) {
+          if (Math.abs(this.panOffset - this.offset) < this.threshold ||
+              this.panOffset < this.offset && nearOffset < this.offset ||
+              this.panOffset > this.offset && nearOffset > this.offset) {
             offset = nearOffset
           } else {
             offset = nextOffset
           }
 
-          v0 = a * Math.sqrt(2 * Math.abs(offset - this.currOffset) / a)
+          v0 = a * Math.sqrt(2 * Math.abs(offset - this.panOffset) / a)
         }
 
-        this.animate(this.currOffset, offset, v0)
+        this.animate(this.panOffset, offset, v0)
       }
     },
 
     animate(from, to, v0) {
-      this.RAF = true
+      this.$emit('update:currentPage', this.transitionOffsets.indexOf(to) + 1)
+      this.raf = Math.random()
       this.offset = from
+      const raf = this.raf
       const s1 = Math.abs(to - from)
       const t1 = (v0 - Math.sqrt(r(v0 * v0 - 2 * a * s1))) / a
 
@@ -176,8 +225,13 @@ export default {
             : `translateY(${this.offset}px)`
         }
 
-        if (this.RAF && this.offset !== to) {
-          requestAnimationFrame(animate)
+
+        if (this.raf === raf) {
+          if (this.offset === to) {
+            this.raf = null
+          } else {
+            requestAnimationFrame(animate)
+          }
         }
       }
 
@@ -196,6 +250,22 @@ export default {
       return dir === 'near'
         ? Math.abs(offset - left) < Math.abs(offset - right) ? left : right
         : dir === 'left' ? left : right
+    },
+
+    goto(page) {
+      if (page != null && !this.raf && !this.panning) {
+        if (page < 1) {
+          page = 1
+        } else if (page > this.transitionOffsets.length) {
+          page = this.transitionOffsets.length
+        }
+
+        if (this.transitionOffsets[page - 1] !== this.offset) {
+          const to = this.transitionOffsets[page - 1]
+          const v0 = a * Math.sqrt(2 * Math.abs(to - this.offset) / a)
+          this.animate(this.offset, to, v0)
+        }
+      }
     }
   }
 }
