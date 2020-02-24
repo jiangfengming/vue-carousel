@@ -14,8 +14,7 @@
 </template>
 
 <script>
-import VCarousel from './VCarousel'
-import VSlide from './VSlide'
+import { VCarousel, VSlide } from '../src'
 
 export default {
   el: '#app',
