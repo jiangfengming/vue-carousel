@@ -8,6 +8,10 @@
       @panstart="onPanStart"
       @panmove="onPanMove"
       @panend="onPanEnd"
+      @click="onClick"
+      @mouseenter="onMouseEnter"
+      @mouseleave="onMouseLeave"
+      @dragstart.prevent
     >
       <slot />
     </div>
@@ -140,7 +144,7 @@ export default {
 
     onPanStart(e) {
       this.panning = true
-      this.raf = false
+      this.animating = false
       this.prevPanTime = this.panTime = e.timeStamp
       this.prevPanPos = this.panPos = this.isHorizontal ? e.detail.clientX : e.detail.clientY
       this.panOffset = this.offset
@@ -196,11 +200,25 @@ export default {
       }
     },
 
+    onClick(e) {
+      if (this.animating) {
+        e.preventDefault()
+      }
+    },
+
+    onMouseEnter() {
+      this.mouseHovering = true
+    },
+
+    onMouseLeave() {
+      this.mouseHovering = false
+    },
+
     animate(from, to, v0) {
       this.$emit('update:currentPage', this.transitionOffsets.indexOf(to) + 1)
-      this.raf = Math.random()
+      this.animating = Math.random()
       this.offset = from
-      const raf = this.raf
+      const animating = this.animating
       const s1 = Math.abs(to - from)
       const t1 = (v0 - Math.sqrt(r(v0 * v0 - 2 * a * s1))) / a
 
@@ -228,9 +246,10 @@ export default {
         }
 
 
-        if (this.raf === raf) {
+        if (this.animating === animating) {
           if (this.offset === to) {
-            this.raf = null
+            this.animating = null
+            this.setAutoplay()
           } else {
             requestAnimationFrame(animate)
           }
@@ -255,7 +274,7 @@ export default {
     },
 
     goto(page) {
-      if (page != null && !this.raf && !this.panning) {
+      if (page != null && !this.animating && !this.panning) {
         if (page < 1) {
           page = 1
         } else if (page > this.transitionOffsets.length) {
@@ -278,7 +297,7 @@ export default {
 
       if (this.autoplay) {
         this.autoplayTimer = setInterval(() => {
-          if (!this.panning && !this.raf) {
+          if (!this.panning && !this.animating && !this.mouseHovering) {
             const curOffsetIndex = this.transitionOffsets.indexOf(this.offset)
 
             if (curOffsetIndex !== -1) {

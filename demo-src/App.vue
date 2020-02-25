@@ -2,7 +2,7 @@
   <main>
     <v-carousel class="carousel" :current-page.sync="currentPage" :total-pages.sync="totalPages" autoplay>
       <v-slide class="slide">slide 1</v-slide>
-      <v-slide class="slide">slide 2</v-slide>
+      <v-slide class="slide"><a href="https://www.example.com/">slide 2</a></v-slide>
       <v-slide class="slide">slide 3</v-slide>
       <v-slide class="slide">slide 4</v-slide>
       <v-slide class="slide">slide 5</v-slide>
@@ -32,12 +32,15 @@ export default {
   width: 320px;
   height: 150px;
   border: 3px solid green;
-  /* overflow: hidden; */
+  overflow: hidden;
 }
 
 .slide {
   width: 150px;
   height: 150px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .slide:nth-child(odd) {
