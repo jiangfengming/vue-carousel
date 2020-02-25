@@ -65,7 +65,12 @@ export default {
   },
 
   watch: {
-    currentPage: 'goto',
+    direction: 'onResize',
+
+    currentPage(n) {
+      this.goto(n)
+    },
+
     autoplay: 'setAutoplay'
   },
 
@@ -91,13 +96,18 @@ export default {
 
   methods: {
     onResize() {
-      console.log('onResize')
-      const curOffsetIndex = this.transitionOffsets.indexOf(this.offset)
-      this.calcTransitionOffsets()
+      this.animating = null
 
-      if (curOffsetIndex !== -1) {
-        this.goto(curOffsetIndex + 1)
+      if (this.resizeRaf) {
+        cancelAnimationFrame(this.resizeRaf)
       }
+
+      this.resizeRaf = requestAnimationFrame(() => {
+        this.resizeRaf = null
+        const curOffsetIndex = this.transitionOffsets.indexOf(this.getOffset(this.offset, 'near'))
+        this.calcTransitionOffsets()
+        this.goto(curOffsetIndex + 1, true)
+      })
     },
 
     calcTransitionOffsets() {
@@ -106,30 +116,34 @@ export default {
       const slides = $slides.children
 
       if (slides.length) {
-        const clientSize = this.isHorizontal ? $slides.clientWidth : $slides.clientHeight
+        const clientSize = this.isHorizontal ? this.$el.clientWidth : this.$el.clientHeight
         const scrollSize = this.isHorizontal ? $slides.scrollWidth : $slides.scrollHeight
         const maxOffset = scrollSize - clientSize
+        console.log('maxOffset', maxOffset)
         const parentOffset = this.isHorizontal ? $slides.offsetLeft : $slides.offsetTop
-
+        console.log('parentOffset', parentOffset)
         let prevOffset = 0
         let nextOffset = 0
 
         for (let i = 0; i < slides.length; i++) {
           const slide = slides[i]
           const offset = (this.isHorizontal ? slide.offsetLeft : slide.offsetTop) - parentOffset
-
+          console.log('offset', offset)
           if (i === 0) {
             this.transitionOffsets.push(-offset)
             prevOffset = offset
-          } else if (i === 1 || offset - prevOffset <= clientSize) {
+          } else if (offset < maxOffset && (i === 1 || offset - prevOffset <= clientSize)) {
             nextOffset = offset
           } else {
-            if (nextOffset < maxOffset) {
+            if (nextOffset && nextOffset < maxOffset) {
               this.transitionOffsets.push(-nextOffset)
             }
 
             if (offset >= maxOffset) {
-              this.transitionOffsets.push(-maxOffset)
+              if (maxOffset) {
+                this.transitionOffsets.push(-maxOffset)
+              }
+
               break
             } else {
               prevOffset = nextOffset
@@ -273,7 +287,7 @@ export default {
         : dir === 'left' ? left : right
     },
 
-    goto(page) {
+    goto(page, immediate) {
       if (page != null && !this.animating && !this.panning) {
         if (page < 1) {
           page = 1
@@ -283,8 +297,20 @@ export default {
 
         if (this.transitionOffsets[page - 1] !== this.offset) {
           const to = this.transitionOffsets[page - 1]
-          const v0 = a * Math.sqrt(2 * Math.abs(to - this.offset) / a)
-          this.animate(this.offset, to, v0)
+
+          if (immediate) {
+            this.$emit('update:currentPage', this.transitionOffsets.indexOf(to) + 1)
+            this.offset = to
+
+            this.transform = this.isHorizontal
+              ? `translateX(${this.offset}px)`
+              : `translateY(${this.offset}px)`
+
+            this.setAutoplay()
+          } else {
+            const v0 = a * Math.sqrt(2 * Math.abs(to - this.offset) / a)
+            this.animate(this.offset, to, v0)
+          }
         }
       }
     },
