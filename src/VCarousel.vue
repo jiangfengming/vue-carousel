@@ -18,7 +18,7 @@
 import panEvents from 'pan-events'
 import elementResizeDetectorMaker from 'element-resize-detector'
 
-const a = 0.08
+const a = 0.03
 
 export default {
   name: 'VCarousel',
@@ -42,7 +42,7 @@ export default {
       type: Number
     },
 
-    autoplay: Boolean
+    autoplay: [Boolean, Number]
   },
 
   data: () => ({
@@ -61,7 +61,8 @@ export default {
   },
 
   watch: {
-    currentPage: 'goto'
+    currentPage: 'goto',
+    autoplay: 'setAutoplay'
   },
 
   mounted() {
@@ -76,6 +77,7 @@ export default {
 
     this.resizeDetector.listenTo(this.$el, this.onResize)
     this.goto(this.currentPage)
+    this.setAutoplay()
   },
 
   beforeDestroy() {
@@ -86,11 +88,11 @@ export default {
   methods: {
     onResize() {
       console.log('onResize')
-      const currOffsetIndex = this.transitionOffsets.indexOf(this.offset)
+      const curOffsetIndex = this.transitionOffsets.indexOf(this.offset)
       this.calcTransitionOffsets()
 
-      if (currOffsetIndex !== -1) {
-        this.goto(currOffsetIndex + 1)
+      if (curOffsetIndex !== -1) {
+        this.goto(curOffsetIndex + 1)
       }
     },
 
@@ -265,6 +267,25 @@ export default {
           const v0 = a * Math.sqrt(2 * Math.abs(to - this.offset) / a)
           this.animate(this.offset, to, v0)
         }
+      }
+    },
+
+    setAutoplay() {
+      if (this.autoplayTimer) {
+        clearInterval(this.autoplayTimer)
+        this.autoplayTimer = null
+      }
+
+      if (this.autoplay) {
+        this.autoplayTimer = setInterval(() => {
+          if (!this.panning && !this.raf) {
+            const curOffsetIndex = this.transitionOffsets.indexOf(this.offset)
+
+            if (curOffsetIndex !== -1) {
+              this.goto(curOffsetIndex === this.transitionOffsets.length - 1 ? 1 : curOffsetIndex + 2)
+            }
+          }
+        }, this.autoplay.constructor === Number ? this.autoplay : 3000)
       }
     }
   }

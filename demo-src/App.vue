@@ -1,6 +1,6 @@
 <template>
   <main>
-    <v-carousel class="carousel" :current-page.sync="currentPage" :total-pages.sync="totalPages">
+    <v-carousel class="carousel" :current-page.sync="currentPage" :total-pages.sync="totalPages" autoplay>
       <v-slide class="slide">slide 1</v-slide>
       <v-slide class="slide">slide 2</v-slide>
       <v-slide class="slide">slide 3</v-slide>
