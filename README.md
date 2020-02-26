@@ -3,6 +3,7 @@ A Vue carousel component.
 
 ## Demo
 [https://jiangfengming.github.io/v-carousel/demo/](https://jiangfengming.github.io/v-carousel/demo/)
+
 [Source code](https://github.com/jiangfengming/v-carousel/blob/master/demo-src/App.vue)
 
 ## Install
