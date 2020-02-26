@@ -112,48 +112,46 @@ export default {
 
     calcTransitionOffsets() {
       this.transitionOffsets = []
-      const $slides = this.$refs.slides
-      const slides = $slides.children
+      const slides = this.$refs.slides.children
 
       if (slides.length) {
+        const offset = this.getSlideOffset(slides[0])
+        this.transitionOffsets.push(-offset)
         const clientSize = this.isHorizontal ? this.$el.clientWidth : this.$el.clientHeight
-        const scrollSize = this.isHorizontal ? $slides.scrollWidth : $slides.scrollHeight
+        const scrollSize = this.isHorizontal ? this.$refs.slides.scrollWidth : this.$refs.slides.scrollHeight
         const maxOffset = scrollSize - clientSize
-        console.log('maxOffset', maxOffset)
-        const parentOffset = this.isHorizontal ? $slides.offsetLeft : $slides.offsetTop
-        console.log('parentOffset', parentOffset)
-        let prevOffset = 0
-        let nextOffset = 0
 
-        for (let i = 0; i < slides.length; i++) {
-          const slide = slides[i]
-          const offset = (this.isHorizontal ? slide.offsetLeft : slide.offsetTop) - parentOffset
-          console.log('offset', offset)
-          if (i === 0) {
-            this.transitionOffsets.push(-offset)
-            prevOffset = offset
-          } else if (offset < maxOffset && (i === 1 || offset - prevOffset <= clientSize)) {
-            nextOffset = offset
-          } else {
-            if (nextOffset && nextOffset < maxOffset) {
-              this.transitionOffsets.push(-nextOffset)
-            }
+        if (slides.length > 1 && offset < maxOffset) {
+          let prevTransitionOffset = offset
+          let nextSlideOffset = this.getSlideOffset(slides[1])
+
+          for (let i = 1; i < slides.length; i++) {
+            const offset = nextSlideOffset
 
             if (offset >= maxOffset) {
-              if (maxOffset) {
-                this.transitionOffsets.push(-maxOffset)
-              }
-
+              this.transitionOffsets.push(-maxOffset)
               break
-            } else {
-              prevOffset = nextOffset
-              nextOffset = offset
+            }
+
+            if (i + 1 < slides.length) {
+              nextSlideOffset = this.getSlideOffset(slides[i + 1])
+
+              if (nextSlideOffset - prevTransitionOffset > clientSize) {
+                this.transitionOffsets.push(-offset)
+                prevTransitionOffset = offset
+              }
             }
           }
         }
       }
 
       this.$emit('update:totalPages', this.transitionOffsets.length)
+    },
+
+    getSlideOffset(slide) {
+      return this.isHorizontal
+        ? slide.offsetLeft - this.$refs.slides.offsetLeft
+        : slide.offsetTop - this.$refs.slides.offsetTop
     },
 
     onPanStart(e) {
