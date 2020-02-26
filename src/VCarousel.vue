@@ -338,6 +338,7 @@ export default {
 <style scoped>
 .slides {
   display: flex;
+  height: 100%;
 }
 
 .slides.horizontal {

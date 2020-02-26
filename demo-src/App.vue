@@ -6,14 +6,14 @@
       :total-pages.sync="totalPages"
       :autoplay="autoplay"
       :direction="direction"
-      :style="{ width: containerWidth, overflow: containerOverflow }"
+      :style="{ width: containerWidth, height: containerHeight, overflow: containerOverflow }"
     >
-      <v-slide class="slide" :style="{ width: slideWidth }">slide 1</v-slide>
-      <v-slide class="slide" :style="{ width: slideWidth }"><a href="https://www.example.com/">slide 2</a></v-slide>
-      <v-slide class="slide" :style="{ width: slideWidth }">slide 3</v-slide>
-      <v-slide class="slide" :style="{ width: slideWidth }">slide 4</v-slide>
-      <v-slide class="slide" :style="{ width: slideWidth }">slide 5</v-slide>
-      <v-slide class="slide" :style="{ width: slideWidth }">slide 6</v-slide>
+      <v-slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 1</v-slide>
+      <v-slide class="slide" :style="{ width: slideWidth, height: slideHeight }"><a href="https://www.example.com/">slide 2</a></v-slide>
+      <v-slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 3</v-slide>
+      <v-slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 4</v-slide>
+      <v-slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 5</v-slide>
+      <v-slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 6</v-slide>
     </v-carousel>
 
     <div class="text-center">
@@ -39,6 +39,12 @@
       <label><input v-model="direction" type="radio" value="vertical">vertical</label>
     </div>
 
+    <div>
+      container overflow:
+      <label><input v-model="containerOverflow" type="radio" value="visible">visible</label>
+      <label><input v-model="containerOverflow" type="radio" value="hidden">hidden</label>
+    </div>
+
     <template v-if="direction === 'horizontal'">
       <div>
         container width:
@@ -47,15 +53,23 @@
       </div>
 
       <div>
-        container overflow:
-        <label><input v-model="containerOverflow" type="radio" value="visible">visible</label>
-        <label><input v-model="containerOverflow" type="radio" value="hidden">hidden</label>
-      </div>
-
-      <div>
         slide width:
         <label><input v-model="slideWidth" type="radio" value="120px">120px</label>
         <label><input v-model="slideWidth" type="radio" value="100%">100%</label>
+      </div>
+    </template>
+
+    <template v-else>
+      <div>
+        container height:
+        <label><input v-model="containerHeight" type="radio" value="150px">150px</label>
+        <label><input v-model="containerHeight" type="radio" value="500px">500px</label>
+      </div>
+
+      <div>
+        slide height:
+        <label><input v-model="slideHeight" type="radio" value="120px">120px</label>
+        <label><input v-model="slideHeight" type="radio" value="100%">100%</label>
       </div>
     </template>
   </main>
@@ -74,14 +88,18 @@ export default {
     autoplay: true,
     direction: 'horizontal',
     containerWidth: '300px',
+    containerHeight: '150px',
     containerOverflow: 'visible',
-    slideWidth: '120px'
+    slideWidth: '120px',
+    slideHeight: '100%'
   }),
 
   watch: {
     direction(d) {
       if (d === 'horizontal') {
         this.containerOverflow = 'visible'
+        this.containerHeight = '150px'
+        this.slideHeight = '100%'
       } else {
         this.containerOverflow = 'hidden'
         this.containerWidth = '300px'
@@ -104,17 +122,13 @@ body {
 .carousel {
   box-sizing: border-box;
   margin: 0 auto;
-  height: 150px;
   border: 3px solid #584EEB;
 }
 
 .slide {
-  width: 100%;
-  height: 144px;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 0 5px;
 }
 
 .slide:nth-child(1) {

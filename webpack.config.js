@@ -25,7 +25,7 @@ module.exports = (env, argv) => {
       path: path.resolve(__dirname, 'demo'),
       filename: dev ? '[name].js' : '[contenthash].js',
       chunkFilename: '[contenthash].js',
-      publicPath: dev ? '/' : '/demo/'
+      publicPath: dev ? '/' : './'
     },
 
     module: {
