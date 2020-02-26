@@ -1,5 +1,5 @@
 {
-  "name": "v-carousel",
+  "name": "@jfm/v-carousel",
   "version": "0.1.0-1",
   "description": "Vue carousel component",
   "main": "dist/v-carousel.js",
