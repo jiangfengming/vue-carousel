@@ -1,18 +1,15 @@
 <template>
-  <div class="carousel">
-    <div
-      ref="slides"
-      class="slides"
-      :class="direction"
-      :style="{ transform }"
-      @panstart="onPanStart"
-      @panmove="onPanMove"
-      @panend="onPanEnd"
-      @click="onClick"
-      @mouseenter="onMouseEnter"
-      @mouseleave="onMouseLeave"
-      @dragstart.prevent
-    >
+  <div
+    class="carousel"
+    @panstart="onPanStart"
+    @panmove="onPanMove"
+    @panend="onPanEnd"
+    @click.capture="onClick"
+    @mouseenter="onMouseEnter"
+    @mouseleave="onMouseLeave"
+    @dragstart.prevent
+  >
+    <div ref="slides" class="slides" :class="direction" :style="{ transform }">
       <slot />
     </div>
   </div>
@@ -35,7 +32,7 @@ export default {
 
     threshold: {
       type: Number,
-      default: 20
+      default: 25
     },
 
     totalPages: {
@@ -75,9 +72,9 @@ export default {
   },
 
   mounted() {
-    panEvents(this.$refs.slides)
+    panEvents(this.$el)
     this.calcTransitionOffsets()
-    this.$on('resize', this.onResize)
+    this.$on('slide-resize', this.onResize)
 
     this.resizeDetector = elementResizeDetectorMaker({
       strategy: 'scroll',
@@ -90,7 +87,7 @@ export default {
   },
 
   beforeDestroy() {
-    this.$off('resize')
+    this.$off('slide-resize')
     this.resizeDetector.uninstall(this.$el)
   },
 
@@ -145,7 +142,7 @@ export default {
         }
       }
 
-      this.$emit('update:totalPages', this.transitionOffsets.length)
+      this.$emit('update:total-pages', this.transitionOffsets.length)
     },
 
     getSlideOffset(slide) {
@@ -227,7 +224,7 @@ export default {
     },
 
     animate(from, to, v0) {
-      this.$emit('update:currentPage', this.transitionOffsets.indexOf(to) + 1)
+      this.$emit('update:current-page', this.transitionOffsets.indexOf(to) + 1)
       this.animating = Math.random()
       this.offset = from
       const animating = this.animating
@@ -262,6 +259,7 @@ export default {
           if (this.offset === to) {
             this.animating = null
             this.setAutoplay()
+            this.$emit('animation-end')
           } else {
             requestAnimationFrame(animate)
           }
@@ -297,7 +295,7 @@ export default {
           const to = this.transitionOffsets[page - 1]
 
           if (immediate) {
-            this.$emit('update:currentPage', this.transitionOffsets.indexOf(to) + 1)
+            this.$emit('update:current-page', this.transitionOffsets.indexOf(to) + 1)
             this.offset = to
 
             this.transform = this.isHorizontal

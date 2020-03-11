@@ -116,7 +116,6 @@ module.exports = (env, argv) => {
     conf.devServer = {
       host: '0.0.0.0',
       disableHostCheck: true,
-      port: 8000,
       historyApiFallback: {
         index: '/',
         disableDotRule: true

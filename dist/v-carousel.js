@@ -13,7 +13,7 @@ var script = {
     },
     threshold: {
       type: Number,
-      "default": 20
+      "default": 25
     },
     totalPages: {
       type: Number
@@ -45,9 +45,9 @@ var script = {
     autoplay: 'setAutoplay'
   },
   mounted: function mounted() {
-    panEvents(this.$refs.slides);
+    panEvents(this.$el);
     this.calcTransitionOffsets();
-    this.$on('resize', this.onResize);
+    this.$on('slide-resize', this.onResize);
     this.resizeDetector = elementResizeDetectorMaker({
       strategy: 'scroll',
       callOnAdd: false
@@ -57,7 +57,7 @@ var script = {
     this.setAutoplay();
   },
   beforeDestroy: function beforeDestroy() {
-    this.$off('resize');
+    this.$off('slide-resize');
     this.resizeDetector.uninstall(this.$el);
   },
   methods: {
@@ -115,7 +115,7 @@ var script = {
         }
       }
 
-      this.$emit('update:totalPages', this.transitionOffsets.length);
+      this.$emit('update:total-pages', this.transitionOffsets.length);
     },
     getSlideOffset: function getSlideOffset(slide) {
       return this.isHorizontal ? slide.offsetLeft - this.$refs.slides.offsetLeft : slide.offsetTop - this.$refs.slides.offsetTop;
@@ -179,7 +179,7 @@ var script = {
     animate: function animate(from, to, v0) {
       var _this2 = this;
 
-      this.$emit('update:currentPage', this.transitionOffsets.indexOf(to) + 1);
+      this.$emit('update:current-page', this.transitionOffsets.indexOf(to) + 1);
       this.animating = Math.random();
       this.offset = from;
       var animating = this.animating;
@@ -207,6 +207,8 @@ var script = {
             _this2.animating = null;
 
             _this2.setAutoplay();
+
+            _this2.$emit('animation-end');
           } else {
             requestAnimationFrame(animate);
           }
@@ -241,7 +243,7 @@ var script = {
           var to = this.transitionOffsets[page - 1];
 
           if (immediate) {
-            this.$emit('update:currentPage', this.transitionOffsets.indexOf(to) + 1);
+            this.$emit('update:current-page', this.transitionOffsets.indexOf(to) + 1);
             this.offset = to;
             this.transform = this.isHorizontal ? "translateX(" + this.offset + "px)" : "translateY(" + this.offset + "px)";
             this.setAutoplay();
@@ -421,30 +423,38 @@ var __vue_render__ = function() {
   var _vm = this;
   var _h = _vm.$createElement;
   var _c = _vm._self._c || _h;
-  return _c("div", { staticClass: "carousel" }, [
-    _c(
-      "div",
-      {
-        ref: "slides",
-        staticClass: "slides",
-        class: _vm.direction,
-        style: { transform: _vm.transform },
-        on: {
-          panstart: _vm.onPanStart,
-          panmove: _vm.onPanMove,
-          panend: _vm.onPanEnd,
-          click: _vm.onClick,
-          mouseenter: _vm.onMouseEnter,
-          mouseleave: _vm.onMouseLeave,
-          dragstart: function($event) {
-            $event.preventDefault();
-          }
+  return _c(
+    "div",
+    {
+      staticClass: "carousel",
+      on: {
+        panstart: _vm.onPanStart,
+        panmove: _vm.onPanMove,
+        panend: _vm.onPanEnd,
+        "!click": function($event) {
+          return _vm.onClick($event)
+        },
+        mouseenter: _vm.onMouseEnter,
+        mouseleave: _vm.onMouseLeave,
+        dragstart: function($event) {
+          $event.preventDefault();
         }
-      },
-      [_vm._t("default")],
-      2
-    )
-  ])
+      }
+    },
+    [
+      _c(
+        "div",
+        {
+          ref: "slides",
+          staticClass: "slides",
+          class: _vm.direction,
+          style: { transform: _vm.transform }
+        },
+        [_vm._t("default")],
+        2
+      )
+    ]
+  )
 };
 var __vue_staticRenderFns__ = [];
 __vue_render__._withStripped = true;
@@ -452,11 +462,11 @@ __vue_render__._withStripped = true;
   /* style */
   const __vue_inject_styles__ = function (inject) {
     if (!inject) return
-    inject("data-v-40318db9_0", { source: "\n.slides[data-v-40318db9] {\n  display: flex;\n  height: 100%;\n}\n.slides.horizontal[data-v-40318db9] {\n  flex-wrap: nowrap;\n}\n.slides.vertical[data-v-40318db9] {\n  flex-direction: column\n}\n", map: {"version":3,"sources":["/Users/jfm/projects/v-carousel/src/VCarousel.vue"],"names":[],"mappings":";AAkVA;EACA,aAAA;EACA,YAAA;AACA;AAEA;EACA,iBAAA;AACA;AAEA;EACA;AACA","file":"VCarousel.vue","sourcesContent":["<template>\n  <div class=\"carousel\">\n    <div\n      ref=\"slides\"\n      class=\"slides\"\n      :class=\"direction\"\n      :style=\"{ transform }\"\n      @panstart=\"onPanStart\"\n      @panmove=\"onPanMove\"\n      @panend=\"onPanEnd\"\n      @click=\"onClick\"\n      @mouseenter=\"onMouseEnter\"\n      @mouseleave=\"onMouseLeave\"\n      @dragstart.prevent\n    >\n      <slot />\n    </div>\n  </div>\n</template>\n\n<script>\nimport panEvents from 'pan-events'\nimport elementResizeDetectorMaker from 'element-resize-detector'\n\nconst a = 0.03\n\nexport default {\n  name: 'VCarousel',\n\n  props: {\n    direction: {\n      type: String,\n      default: 'horizontal' // horizontal, vertical\n    },\n\n    threshold: {\n      type: Number,\n      default: 20\n    },\n\n    totalPages: {\n      type: Number\n    },\n\n    currentPage: {\n      type: Number\n    },\n\n    autoplay: [Boolean, Number]\n  },\n\n  data: () => ({\n    transform: '',\n    offset: 0\n  }),\n\n  computed: {\n    isVertical() {\n      return this.direction === 'vertical'\n    },\n\n    isHorizontal() {\n      return this.direction === 'horizontal'\n    }\n  },\n\n  watch: {\n    direction: 'onResize',\n\n    currentPage(n) {\n      this.goto(n)\n    },\n\n    autoplay: 'setAutoplay'\n  },\n\n  mounted() {\n    panEvents(this.$refs.slides)\n    this.calcTransitionOffsets()\n    this.$on('resize', this.onResize)\n\n    this.resizeDetector = elementResizeDetectorMaker({\n      strategy: 'scroll',\n      callOnAdd: false\n    })\n\n    this.resizeDetector.listenTo(this.$el, this.onResize)\n    this.goto(this.currentPage)\n    this.setAutoplay()\n  },\n\n  beforeDestroy() {\n    this.$off('resize')\n    this.resizeDetector.uninstall(this.$el)\n  },\n\n  methods: {\n    onResize() {\n      this.animating = null\n\n      if (this.resizeRaf) {\n        cancelAnimationFrame(this.resizeRaf)\n      }\n\n      this.resizeRaf = requestAnimationFrame(() => {\n        this.resizeRaf = null\n        const curOffsetIndex = this.transitionOffsets.indexOf(this.getOffset(this.offset, 'near'))\n        this.calcTransitionOffsets()\n        this.goto(curOffsetIndex + 1, true)\n      })\n    },\n\n    calcTransitionOffsets() {\n      this.transitionOffsets = []\n      const slides = this.$refs.slides.children\n\n      if (slides.length) {\n        const offset = this.getSlideOffset(slides[0])\n        this.transitionOffsets.push(-offset)\n        const clientSize = this.isHorizontal ? this.$el.clientWidth : this.$el.clientHeight\n        const scrollSize = this.isHorizontal ? this.$refs.slides.scrollWidth : this.$refs.slides.scrollHeight\n        const maxOffset = scrollSize - clientSize\n\n        if (slides.length > 1 && offset < maxOffset) {\n          let prevTransitionOffset = offset\n          let nextSlideOffset = this.getSlideOffset(slides[1])\n\n          for (let i = 1; i < slides.length; i++) {\n            const offset = nextSlideOffset\n\n            if (offset >= maxOffset) {\n              this.transitionOffsets.push(-maxOffset)\n              break\n            }\n\n            if (i + 1 < slides.length) {\n              nextSlideOffset = this.getSlideOffset(slides[i + 1])\n\n              if (nextSlideOffset - prevTransitionOffset > clientSize) {\n                this.transitionOffsets.push(-offset)\n                prevTransitionOffset = offset\n              }\n            }\n          }\n        }\n      }\n\n      this.$emit('update:totalPages', this.transitionOffsets.length)\n    },\n\n    getSlideOffset(slide) {\n      return this.isHorizontal\n        ? slide.offsetLeft - this.$refs.slides.offsetLeft\n        : slide.offsetTop - this.$refs.slides.offsetTop\n    },\n\n    onPanStart(e) {\n      this.panning = true\n      this.animating = false\n      this.prevPanTime = this.panTime = e.timeStamp\n      this.prevPanPos = this.panPos = this.isHorizontal ? e.detail.clientX : e.detail.clientY\n      this.panOffset = this.offset\n    },\n\n    onPanMove(e) {\n      const panPos = this.isHorizontal ? e.detail.clientX : e.detail.clientY\n\n      if (panPos !== this.prevPanPos) {\n        this.prevPanTime = this.panTime\n        this.prevPanPos = this.panPos\n        this.panTime = e.timeStamp\n        this.panPos = panPos\n        const offset = this.offset + (this.isHorizontal ? e.detail.offsetX : e.detail.offsetY)\n\n        this.panOffset = offset > this.transitionOffsets[0]\n          ? this.transitionOffsets[0]\n          : offset < this.transitionOffsets[this.transitionOffsets.length - 1]\n            ? this.transitionOffsets[this.transitionOffsets.length - 1]\n            : offset\n\n        this.transform = this.isHorizontal\n          ? `translateX(${this.panOffset}px)`\n          : `translateY(${this.panOffset}px)`\n      }\n    },\n\n    onPanEnd(e) {\n      this.panning = false\n\n      if (this.panOffset !== this.offset || this.transitionOffsets.indexOf(this.offset) === -1) {\n        let offset\n        let v0 = Math.abs(this.panPos - this.prevPanPos) / Math.abs(e.timeStamp - this.prevPanTime)\n        const nextOffset = this.getOffset(this.panOffset, this.panOffset < this.offset ? 'left' : 'right')\n\n        if (v0 >= a * Math.sqrt(2 * Math.abs(this.nextOffset - this.panOffset) / a)) {\n          offset = nextOffset\n        } else {\n          const nearOffset = this.getOffset(this.panOffset, 'near')\n\n          if (Math.abs(this.panOffset - this.offset) < this.threshold ||\n              this.panOffset < this.offset && nearOffset < this.offset ||\n              this.panOffset > this.offset && nearOffset > this.offset) {\n            offset = nearOffset\n          } else {\n            offset = nextOffset\n          }\n\n          v0 = a * Math.sqrt(2 * Math.abs(offset - this.panOffset) / a)\n        }\n\n        this.animate(this.panOffset, offset, v0)\n      }\n    },\n\n    onClick(e) {\n      if (this.animating) {\n        e.preventDefault()\n      }\n    },\n\n    onMouseEnter() {\n      this.mouseHovering = true\n    },\n\n    onMouseLeave() {\n      this.mouseHovering = false\n    },\n\n    animate(from, to, v0) {\n      this.$emit('update:currentPage', this.transitionOffsets.indexOf(to) + 1)\n      this.animating = Math.random()\n      this.offset = from\n      const animating = this.animating\n      const s1 = Math.abs(to - from)\n      const t1 = (v0 - Math.sqrt(r(v0 * v0 - 2 * a * s1))) / a\n\n      function r(n) {\n        return Math.round(n * 100000) / 100000\n      }\n\n      let start\n\n      const animate = now => {\n        if (!start) {\n          start = now\n        } else {\n          const t = now - start\n\n          const s = t >= t1\n            ? s1\n            : Math.abs(Math.round(v0 * t - a * t * t / 2))\n\n          this.offset = from + (from > to ? -s : s)\n\n          this.transform = this.isHorizontal\n            ? `translateX(${this.offset}px)`\n            : `translateY(${this.offset}px)`\n        }\n\n\n        if (this.animating === animating) {\n          if (this.offset === to) {\n            this.animating = null\n            this.setAutoplay()\n          } else {\n            requestAnimationFrame(animate)\n          }\n        }\n      }\n\n      requestAnimationFrame(animate)\n    },\n\n    getOffset(offset, dir) {\n      const left = this.transitionOffsets.find(o => o <= offset)\n\n      if (left === offset) {\n        return offset\n      }\n\n      const right = [...this.transitionOffsets].reverse().find(o => o >= offset)\n\n      return dir === 'near'\n        ? Math.abs(offset - left) < Math.abs(offset - right) ? left : right\n        : dir === 'left' ? left : right\n    },\n\n    goto(page, immediate) {\n      if (page != null && !this.animating && !this.panning) {\n        if (page < 1) {\n          page = 1\n        } else if (page > this.transitionOffsets.length) {\n          page = this.transitionOffsets.length\n        }\n\n        if (this.transitionOffsets[page - 1] !== this.offset) {\n          const to = this.transitionOffsets[page - 1]\n\n          if (immediate) {\n            this.$emit('update:currentPage', this.transitionOffsets.indexOf(to) + 1)\n            this.offset = to\n\n            this.transform = this.isHorizontal\n              ? `translateX(${this.offset}px)`\n              : `translateY(${this.offset}px)`\n\n            this.setAutoplay()\n          } else {\n            const v0 = a * Math.sqrt(2 * Math.abs(to - this.offset) / a)\n            this.animate(this.offset, to, v0)\n          }\n        }\n      }\n    },\n\n    setAutoplay() {\n      if (this.autoplayTimer) {\n        clearInterval(this.autoplayTimer)\n        this.autoplayTimer = null\n      }\n\n      if (this.autoplay) {\n        this.autoplayTimer = setInterval(() => {\n          if (!this.panning && !this.animating && !this.mouseHovering) {\n            const curOffsetIndex = this.transitionOffsets.indexOf(this.offset)\n\n            if (curOffsetIndex !== -1) {\n              this.goto(curOffsetIndex === this.transitionOffsets.length - 1 ? 1 : curOffsetIndex + 2)\n            }\n          }\n        }, this.autoplay.constructor === Number ? this.autoplay : 3000)\n      }\n    }\n  }\n}\n</script>\n\n<style scoped>\n.slides {\n  display: flex;\n  height: 100%;\n}\n\n.slides.horizontal {\n  flex-wrap: nowrap;\n}\n\n.slides.vertical {\n  flex-direction: column\n}\n</style>\n"]}, media: undefined });
+    inject("data-v-6efddcec_0", { source: "\n.slides[data-v-6efddcec] {\n  display: flex;\n  height: 100%;\n}\n.slides.horizontal[data-v-6efddcec] {\n  flex-wrap: nowrap;\n}\n.slides.vertical[data-v-6efddcec] {\n  flex-direction: column\n}\n", map: {"version":3,"sources":["/Users/jfm/projects/v-carousel/src/VCarousel.vue"],"names":[],"mappings":";AAgVA;EACA,aAAA;EACA,YAAA;AACA;AAEA;EACA,iBAAA;AACA;AAEA;EACA;AACA","file":"VCarousel.vue","sourcesContent":["<template>\n  <div\n    class=\"carousel\"\n    @panstart=\"onPanStart\"\n    @panmove=\"onPanMove\"\n    @panend=\"onPanEnd\"\n    @click.capture=\"onClick\"\n    @mouseenter=\"onMouseEnter\"\n    @mouseleave=\"onMouseLeave\"\n    @dragstart.prevent\n  >\n    <div ref=\"slides\" class=\"slides\" :class=\"direction\" :style=\"{ transform }\">\n      <slot />\n    </div>\n  </div>\n</template>\n\n<script>\nimport panEvents from 'pan-events'\nimport elementResizeDetectorMaker from 'element-resize-detector'\n\nconst a = 0.03\n\nexport default {\n  name: 'VCarousel',\n\n  props: {\n    direction: {\n      type: String,\n      default: 'horizontal' // horizontal, vertical\n    },\n\n    threshold: {\n      type: Number,\n      default: 25\n    },\n\n    totalPages: {\n      type: Number\n    },\n\n    currentPage: {\n      type: Number\n    },\n\n    autoplay: [Boolean, Number]\n  },\n\n  data: () => ({\n    transform: '',\n    offset: 0\n  }),\n\n  computed: {\n    isVertical() {\n      return this.direction === 'vertical'\n    },\n\n    isHorizontal() {\n      return this.direction === 'horizontal'\n    }\n  },\n\n  watch: {\n    direction: 'onResize',\n\n    currentPage(n) {\n      this.goto(n)\n    },\n\n    autoplay: 'setAutoplay'\n  },\n\n  mounted() {\n    panEvents(this.$el)\n    this.calcTransitionOffsets()\n    this.$on('slide-resize', this.onResize)\n\n    this.resizeDetector = elementResizeDetectorMaker({\n      strategy: 'scroll',\n      callOnAdd: false\n    })\n\n    this.resizeDetector.listenTo(this.$el, this.onResize)\n    this.goto(this.currentPage)\n    this.setAutoplay()\n  },\n\n  beforeDestroy() {\n    this.$off('slide-resize')\n    this.resizeDetector.uninstall(this.$el)\n  },\n\n  methods: {\n    onResize() {\n      this.animating = null\n\n      if (this.resizeRaf) {\n        cancelAnimationFrame(this.resizeRaf)\n      }\n\n      this.resizeRaf = requestAnimationFrame(() => {\n        this.resizeRaf = null\n        const curOffsetIndex = this.transitionOffsets.indexOf(this.getOffset(this.offset, 'near'))\n        this.calcTransitionOffsets()\n        this.goto(curOffsetIndex + 1, true)\n      })\n    },\n\n    calcTransitionOffsets() {\n      this.transitionOffsets = []\n      const slides = this.$refs.slides.children\n\n      if (slides.length) {\n        const offset = this.getSlideOffset(slides[0])\n        this.transitionOffsets.push(-offset)\n        const clientSize = this.isHorizontal ? this.$el.clientWidth : this.$el.clientHeight\n        const scrollSize = this.isHorizontal ? this.$refs.slides.scrollWidth : this.$refs.slides.scrollHeight\n        const maxOffset = scrollSize - clientSize\n\n        if (slides.length > 1 && offset < maxOffset) {\n          let prevTransitionOffset = offset\n          let nextSlideOffset = this.getSlideOffset(slides[1])\n\n          for (let i = 1; i < slides.length; i++) {\n            const offset = nextSlideOffset\n\n            if (offset >= maxOffset) {\n              this.transitionOffsets.push(-maxOffset)\n              break\n            }\n\n            if (i + 1 < slides.length) {\n              nextSlideOffset = this.getSlideOffset(slides[i + 1])\n\n              if (nextSlideOffset - prevTransitionOffset > clientSize) {\n                this.transitionOffsets.push(-offset)\n                prevTransitionOffset = offset\n              }\n            }\n          }\n        }\n      }\n\n      this.$emit('update:total-pages', this.transitionOffsets.length)\n    },\n\n    getSlideOffset(slide) {\n      return this.isHorizontal\n        ? slide.offsetLeft - this.$refs.slides.offsetLeft\n        : slide.offsetTop - this.$refs.slides.offsetTop\n    },\n\n    onPanStart(e) {\n      this.panning = true\n      this.animating = false\n      this.prevPanTime = this.panTime = e.timeStamp\n      this.prevPanPos = this.panPos = this.isHorizontal ? e.detail.clientX : e.detail.clientY\n      this.panOffset = this.offset\n    },\n\n    onPanMove(e) {\n      const panPos = this.isHorizontal ? e.detail.clientX : e.detail.clientY\n\n      if (panPos !== this.prevPanPos) {\n        this.prevPanTime = this.panTime\n        this.prevPanPos = this.panPos\n        this.panTime = e.timeStamp\n        this.panPos = panPos\n        const offset = this.offset + (this.isHorizontal ? e.detail.offsetX : e.detail.offsetY)\n\n        this.panOffset = offset > this.transitionOffsets[0]\n          ? this.transitionOffsets[0]\n          : offset < this.transitionOffsets[this.transitionOffsets.length - 1]\n            ? this.transitionOffsets[this.transitionOffsets.length - 1]\n            : offset\n\n        this.transform = this.isHorizontal\n          ? `translateX(${this.panOffset}px)`\n          : `translateY(${this.panOffset}px)`\n      }\n    },\n\n    onPanEnd(e) {\n      this.panning = false\n\n      if (this.panOffset !== this.offset || this.transitionOffsets.indexOf(this.offset) === -1) {\n        let offset\n        let v0 = Math.abs(this.panPos - this.prevPanPos) / Math.abs(e.timeStamp - this.prevPanTime)\n        const nextOffset = this.getOffset(this.panOffset, this.panOffset < this.offset ? 'left' : 'right')\n\n        if (v0 >= a * Math.sqrt(2 * Math.abs(this.nextOffset - this.panOffset) / a)) {\n          offset = nextOffset\n        } else {\n          const nearOffset = this.getOffset(this.panOffset, 'near')\n\n          if (Math.abs(this.panOffset - this.offset) < this.threshold ||\n              this.panOffset < this.offset && nearOffset < this.offset ||\n              this.panOffset > this.offset && nearOffset > this.offset) {\n            offset = nearOffset\n          } else {\n            offset = nextOffset\n          }\n\n          v0 = a * Math.sqrt(2 * Math.abs(offset - this.panOffset) / a)\n        }\n\n        this.animate(this.panOffset, offset, v0)\n      }\n    },\n\n    onClick(e) {\n      if (this.animating) {\n        e.preventDefault()\n      }\n    },\n\n    onMouseEnter() {\n      this.mouseHovering = true\n    },\n\n    onMouseLeave() {\n      this.mouseHovering = false\n    },\n\n    animate(from, to, v0) {\n      this.$emit('update:current-page', this.transitionOffsets.indexOf(to) + 1)\n      this.animating = Math.random()\n      this.offset = from\n      const animating = this.animating\n      const s1 = Math.abs(to - from)\n      const t1 = (v0 - Math.sqrt(r(v0 * v0 - 2 * a * s1))) / a\n\n      function r(n) {\n        return Math.round(n * 100000) / 100000\n      }\n\n      let start\n\n      const animate = now => {\n        if (!start) {\n          start = now\n        } else {\n          const t = now - start\n\n          const s = t >= t1\n            ? s1\n            : Math.abs(Math.round(v0 * t - a * t * t / 2))\n\n          this.offset = from + (from > to ? -s : s)\n\n          this.transform = this.isHorizontal\n            ? `translateX(${this.offset}px)`\n            : `translateY(${this.offset}px)`\n        }\n\n\n        if (this.animating === animating) {\n          if (this.offset === to) {\n            this.animating = null\n            this.setAutoplay()\n            this.$emit('animation-end')\n          } else {\n            requestAnimationFrame(animate)\n          }\n        }\n      }\n\n      requestAnimationFrame(animate)\n    },\n\n    getOffset(offset, dir) {\n      const left = this.transitionOffsets.find(o => o <= offset)\n\n      if (left === offset) {\n        return offset\n      }\n\n      const right = [...this.transitionOffsets].reverse().find(o => o >= offset)\n\n      return dir === 'near'\n        ? Math.abs(offset - left) < Math.abs(offset - right) ? left : right\n        : dir === 'left' ? left : right\n    },\n\n    goto(page, immediate) {\n      if (page != null && !this.animating && !this.panning) {\n        if (page < 1) {\n          page = 1\n        } else if (page > this.transitionOffsets.length) {\n          page = this.transitionOffsets.length\n        }\n\n        if (this.transitionOffsets[page - 1] !== this.offset) {\n          const to = this.transitionOffsets[page - 1]\n\n          if (immediate) {\n            this.$emit('update:current-page', this.transitionOffsets.indexOf(to) + 1)\n            this.offset = to\n\n            this.transform = this.isHorizontal\n              ? `translateX(${this.offset}px)`\n              : `translateY(${this.offset}px)`\n\n            this.setAutoplay()\n          } else {\n            const v0 = a * Math.sqrt(2 * Math.abs(to - this.offset) / a)\n            this.animate(this.offset, to, v0)\n          }\n        }\n      }\n    },\n\n    setAutoplay() {\n      if (this.autoplayTimer) {\n        clearInterval(this.autoplayTimer)\n        this.autoplayTimer = null\n      }\n\n      if (this.autoplay) {\n        this.autoplayTimer = setInterval(() => {\n          if (!this.panning && !this.animating && !this.mouseHovering) {\n            const curOffsetIndex = this.transitionOffsets.indexOf(this.offset)\n\n            if (curOffsetIndex !== -1) {\n              this.goto(curOffsetIndex === this.transitionOffsets.length - 1 ? 1 : curOffsetIndex + 2)\n            }\n          }\n        }, this.autoplay.constructor === Number ? this.autoplay : 3000)\n      }\n    }\n  }\n}\n</script>\n\n<style scoped>\n.slides {\n  display: flex;\n  height: 100%;\n}\n\n.slides.horizontal {\n  flex-wrap: nowrap;\n}\n\n.slides.vertical {\n  flex-direction: column\n}\n</style>\n"]}, media: undefined });
 
   };
   /* scoped */
-  const __vue_scope_id__ = "data-v-40318db9";
+  const __vue_scope_id__ = "data-v-6efddcec";
   /* module identifier */
   const __vue_module_identifier__ = undefined;
   /* functional template */
@@ -486,18 +496,18 @@ var script$1 = {
   mounted: function mounted() {
     var _this = this;
 
-    this.$parent.$emit('resize');
+    this.$parent.$emit('slide-resize');
     this.resizeDetector = elementResizeDetectorMaker({
       strategy: 'scroll',
       callOnAdd: false
     });
     this.resizeDetector.listenTo(this.$el, function () {
-      _this.$parent.$emit('resize');
+      _this.$parent.$emit('slide-resize');
     });
   },
   destroyed: function destroyed() {
     this.resizeDetector.uninstall(this.$el);
-    this.$parent.$emit('resize');
+    this.$parent.$emit('slide-resize');
   }
 };
 
@@ -517,11 +527,11 @@ __vue_render__$1._withStripped = true;
   /* style */
   const __vue_inject_styles__$1 = function (inject) {
     if (!inject) return
-    inject("data-v-50dc514a_0", { source: "\n.slide[data-v-50dc514a] {\n  flex-shrink: 0;\n}\n", map: {"version":3,"sources":["/Users/jfm/projects/v-carousel/src/VSlide.vue"],"names":[],"mappings":";AA+BA;EACA,cAAA;AACA","file":"VSlide.vue","sourcesContent":["<template>\n  <div class=\"slide\"><slot /></div>\n</template>\n\n<script>\nimport elementResizeDetectorMaker from 'element-resize-detector'\n\nexport default {\n  name: 'VSlide',\n\n  mounted() {\n    this.$parent.$emit('resize')\n\n    this.resizeDetector = elementResizeDetectorMaker({\n      strategy: 'scroll',\n      callOnAdd: false\n    })\n\n    this.resizeDetector.listenTo(this.$el, () => {\n      this.$parent.$emit('resize')\n    })\n  },\n\n  destroyed() {\n    this.resizeDetector.uninstall(this.$el)\n    this.$parent.$emit('resize')\n  }\n}\n</script>\n\n<style scoped>\n.slide {\n  flex-shrink: 0;\n}\n</style>\n"]}, media: undefined });
+    inject("data-v-53a0e6bf_0", { source: "\n.slide[data-v-53a0e6bf] {\n  flex-shrink: 0;\n}\n", map: {"version":3,"sources":["/Users/jfm/projects/v-carousel/src/VSlide.vue"],"names":[],"mappings":";AA+BA;EACA,cAAA;AACA","file":"VSlide.vue","sourcesContent":["<template>\n  <div class=\"slide\"><slot /></div>\n</template>\n\n<script>\nimport elementResizeDetectorMaker from 'element-resize-detector'\n\nexport default {\n  name: 'VSlide',\n\n  mounted() {\n    this.$parent.$emit('slide-resize')\n\n    this.resizeDetector = elementResizeDetectorMaker({\n      strategy: 'scroll',\n      callOnAdd: false\n    })\n\n    this.resizeDetector.listenTo(this.$el, () => {\n      this.$parent.$emit('slide-resize')\n    })\n  },\n\n  destroyed() {\n    this.resizeDetector.uninstall(this.$el)\n    this.$parent.$emit('slide-resize')\n  }\n}\n</script>\n\n<style scoped>\n.slide {\n  flex-shrink: 0;\n}\n</style>\n"]}, media: undefined });
 
   };
   /* scoped */
-  const __vue_scope_id__$1 = "data-v-50dc514a";
+  const __vue_scope_id__$1 = "data-v-53a0e6bf";
   /* module identifier */
   const __vue_module_identifier__$1 = undefined;
   /* functional template */

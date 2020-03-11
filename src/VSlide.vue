@@ -9,7 +9,7 @@ export default {
   name: 'VSlide',
 
   mounted() {
-    this.$parent.$emit('resize')
+    this.$parent.$emit('slide-resize')
 
     this.resizeDetector = elementResizeDetectorMaker({
       strategy: 'scroll',
@@ -17,13 +17,13 @@ export default {
     })
 
     this.resizeDetector.listenTo(this.$el, () => {
-      this.$parent.$emit('resize')
+      this.$parent.$emit('slide-resize')
     })
   },
 
   destroyed() {
     this.resizeDetector.uninstall(this.$el)
-    this.$parent.$emit('resize')
+    this.$parent.$emit('slide-resize')
   }
 }
 </script>
