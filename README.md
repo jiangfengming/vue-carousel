@@ -57,7 +57,6 @@ export default {
 * `total-page.sync`: `Number`. Total page count.
 * `autoplay`: `Boolean` or `Number` (milliseconds). If `true`, it defaults to 3000.
 * `direction`: `String`. `horizontal`, or `vertical`.
-* `threshold`: `Number`. Slides to next/previous page if the drag distance exceeded the threshold. Defaults to `20`px.
   
 ## License
 [MIT](LICENSE)

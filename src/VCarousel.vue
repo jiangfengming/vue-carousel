@@ -19,7 +19,7 @@
 import panEvents from 'pan-events'
 import elementResizeDetectorMaker from 'element-resize-detector'
 
-const a = 0.03
+const a = 0.01
 
 export default {
   name: 'VCarousel',
@@ -28,11 +28,6 @@ export default {
     direction: {
       type: String,
       default: 'horizontal' // horizontal, vertical
-    },
-
-    threshold: {
-      type: Number,
-      default: 25
     },
 
     totalPages: {
@@ -154,47 +149,71 @@ export default {
     onPanStart(e) {
       this.panning = true
       this.animating = false
-      this.prevPanTime = this.panTime = e.timeStamp
-      this.prevPanPos = this.panPos = this.isHorizontal ? e.detail.clientX : e.detail.clientY
+      this.panDirection = null
       this.panOffset = this.offset
+
+      this.panTracks = [{
+        timeStamp: e.timeStamp,
+        position: this.isHorizontal ? e.detail.clientX : e.detail.clientY
+      }]
     },
 
     onPanMove(e) {
-      const panPos = this.isHorizontal ? e.detail.clientX : e.detail.clientY
+      const damping = 5
 
-      if (panPos !== this.prevPanPos) {
-        this.prevPanTime = this.panTime
-        this.prevPanPos = this.panPos
-        this.panTime = e.timeStamp
-        this.panPos = panPos
-        const offset = this.offset + (this.isHorizontal ? e.detail.offsetX : e.detail.offsetY)
+      if (Math.abs(e.detail.offsetX) - damping > 0 || Math.abs(e.detail.offsetY) - damping > 0) {
+        if (!this.panDirection) {
+          this.panDirection = Math.abs(e.detail.offsetX) - Math.abs(e.detail.offsetY) > 0 ? 'horizontal' : 'vertical'
+        }
 
-        this.panOffset = offset > this.transitionOffsets[0]
-          ? this.transitionOffsets[0]
-          : offset < this.transitionOffsets[this.transitionOffsets.length - 1]
-            ? this.transitionOffsets[this.transitionOffsets.length - 1]
-            : offset
+        let offset = this.isHorizontal ? e.detail.offsetX : e.detail.offsetY
 
-        this.transform = this.isHorizontal
-          ? `translateX(${this.panOffset}px)`
-          : `translateY(${this.panOffset}px)`
+        if (
+          this.panDirection === this.direction &&
+          Math.abs(offset) - damping > 0
+        ) {
+          this.panTracks.push({
+            timeStamp: e.timeStamp,
+            position: this.isHorizontal ? e.detail.clientX : e.detail.clientY
+          })
+
+          if (this.panTracks.length > 10) {
+            this.panTracks.shift()
+          }
+
+          offset += (offset < 0 ? damping : -damping) + this.offset
+
+          this.panOffset = offset > this.transitionOffsets[0]
+            ? this.transitionOffsets[0]
+            : offset < this.transitionOffsets[this.transitionOffsets.length - 1]
+              ? this.transitionOffsets[this.transitionOffsets.length - 1]
+              : offset
+
+          this.transform = this.isHorizontal
+            ? `translateX(${this.panOffset}px)`
+            : `translateY(${this.panOffset}px)`
+        }
       }
     },
 
-    onPanEnd(e) {
+    onPanEnd() {
       this.panning = false
 
       if (this.panOffset !== this.offset || this.transitionOffsets.indexOf(this.offset) === -1) {
         let offset
-        let v0 = Math.abs(this.panPos - this.prevPanPos) / Math.abs(e.timeStamp - this.prevPanTime)
+        const p0 = this.panTracks.shift()
+        const p1 = this.panTracks.pop()
+        let v0 = Math.abs(p1.position - p0.position) / Math.abs(p1.timeStamp - p0.timeStamp)
         const nextOffset = this.getOffset(this.panOffset, this.panOffset < this.offset ? 'left' : 'right')
+        const vMin = a * Math.sqrt(2 * Math.abs(nextOffset - this.panOffset) / a)
 
-        if (v0 >= a * Math.sqrt(2 * Math.abs(this.nextOffset - this.panOffset) / a)) {
+        if (v0 > 0.2) {
+          v0 = vMin
           offset = nextOffset
         } else {
           const nearOffset = this.getOffset(this.panOffset, 'near')
 
-          if (Math.abs(this.panOffset - this.offset) < this.threshold ||
+          if (Math.abs(this.panOffset - this.offset) < Math.abs(nextOffset - nearOffset) / 3 ||
               this.panOffset < this.offset && nearOffset < this.offset ||
               this.panOffset > this.offset && nearOffset > this.offset) {
             offset = nearOffset
@@ -242,7 +261,6 @@ export default {
           start = now
         } else {
           const t = now - start
-
           const s = t >= t1
             ? s1
             : Math.abs(Math.round(v0 * t - a * t * t / 2))
