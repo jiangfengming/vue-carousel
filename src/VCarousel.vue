@@ -88,18 +88,22 @@ export default {
 
   methods: {
     onResize() {
-      this.animating = null
+      if (this.animating) {
+        this.animating.then(() => {
+          if (!this.resizeTimer) {
+            this.resizeTimer = setTimeout(() => {
+              this.resizeTimer = null
+              const curOffsetIndex = this.transitionOffsets.indexOf(this.getOffset(this.offset, 'near'))
+              const oldOffsets = this.transitionOffsets.concat()
+              this.calcTransitionOffsets()
 
-      if (this.resizeRaf) {
-        cancelAnimationFrame(this.resizeRaf)
+              if (!this.transitionOffsets.every((v, i) => oldOffsets[i] === v)) {
+                this.goto(curOffsetIndex + 1, true)
+              }
+            }, 10)
+          }
+        })
       }
-
-      this.resizeRaf = requestAnimationFrame(() => {
-        this.resizeRaf = null
-        const curOffsetIndex = this.transitionOffsets.indexOf(this.getOffset(this.offset, 'near'))
-        this.calcTransitionOffsets()
-        this.goto(curOffsetIndex + 1, true)
-      })
     },
 
     calcTransitionOffsets() {
@@ -243,48 +247,52 @@ export default {
     },
 
     animate(from, to, v0) {
-      this.$emit('update:current-page', this.transitionOffsets.indexOf(to) + 1)
-      this.animating = Math.random()
-      this.offset = from
-      const animating = this.animating
-      const s1 = Math.abs(to - from)
-      const t1 = (v0 - Math.sqrt(r(v0 * v0 - 2 * a * s1))) / a
+      const animating = this.animating = new Promise(resolve => {
+        this.$emit('update:current-page', this.transitionOffsets.indexOf(to) + 1)
+        this.offset = from
+        const s1 = Math.abs(to - from)
+        const t1 = (v0 - Math.sqrt(r(v0 * v0 - 2 * a * s1))) / a
 
-      function r(n) {
-        return Math.round(n * 100000) / 100000
-      }
-
-      let start
-
-      const animate = now => {
-        if (!start) {
-          start = now
-        } else {
-          const t = now - start
-          const s = t >= t1
-            ? s1
-            : Math.abs(Math.round(v0 * t - a * t * t / 2))
-
-          this.offset = from + (from > to ? -s : s)
-
-          this.transform = this.isHorizontal
-            ? `translateX(${this.offset}px)`
-            : `translateY(${this.offset}px)`
+        function r(n) {
+          return Math.round(n * 100000) / 100000
         }
 
+        let start
 
-        if (this.animating === animating) {
-          if (this.offset === to) {
-            this.animating = null
-            this.setAutoplay()
-            this.$emit('animation-end')
+        const animate = now => {
+          if (!start) {
+            start = now
           } else {
-            requestAnimationFrame(animate)
+            const t = now - start
+            const s = t >= t1
+              ? s1
+              : Math.abs(Math.round(v0 * t - a * t * t / 2))
+
+            this.offset = from + (from > to ? -s : s)
+
+            this.transform = this.isHorizontal
+              ? `translateX(${this.offset}px)`
+              : `translateY(${this.offset}px)`
+          }
+
+          if (this.animating === animating) {
+            if (this.offset === to) {
+              this.setAutoplay()
+              this.$emit('animation-end')
+              this.animating = false
+              resolve(true)
+            } else {
+              requestAnimationFrame(animate)
+            }
+          } else {
+            resolve(false)
           }
         }
-      }
 
-      requestAnimationFrame(animate)
+        requestAnimationFrame(animate)
+      })
+
+      return this.animating
     },
 
     getOffset(offset, dir) {
