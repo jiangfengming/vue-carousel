@@ -7,9 +7,10 @@ import elementResizeDetectorMaker from 'element-resize-detector'
 
 export default {
   name: 'VSlide',
+  inject: ['carousel'],
 
   mounted() {
-    this.$parent.$emit('slide-resize')
+    this.carousel.$emit('slide-resize')
 
     this.resizeDetector = elementResizeDetectorMaker({
       strategy: 'scroll',
@@ -17,13 +18,13 @@ export default {
     })
 
     this.resizeDetector.listenTo(this.$el, () => {
-      this.$parent.$emit('slide-resize')
+      this.carousel.$emit('slide-resize')
     })
   },
 
   destroyed() {
     this.resizeDetector.uninstall(this.$el)
-    this.$parent.$emit('slide-resize')
+    this.carousel.$emit('slide-resize')
   }
 }
 </script>

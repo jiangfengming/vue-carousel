@@ -56,6 +56,12 @@ export default {
     }
   },
 
+  provide() {
+    return {
+      carousel: this
+    }
+  },
+
   watch: {
     direction: 'onResize',
 
@@ -88,22 +94,20 @@ export default {
 
   methods: {
     onResize() {
-      if (this.animating) {
-        this.animating.then(() => {
-          if (!this.resizeTimer) {
-            this.resizeTimer = setTimeout(() => {
-              this.resizeTimer = null
-              const curOffsetIndex = this.transitionOffsets.indexOf(this.getOffset(this.offset, 'near'))
-              const oldOffsets = this.transitionOffsets.concat()
-              this.calcTransitionOffsets()
+      Promise.resolve(this.animating).then(() => {
+        if (!this.resizeTimer) {
+          this.resizeTimer = setTimeout(() => {
+            this.resizeTimer = null
+            const curOffsetIndex = this.transitionOffsets.indexOf(this.getOffset(this.offset, 'near'))
+            const oldOffsets = this.transitionOffsets.concat()
+            this.calcTransitionOffsets()
 
-              if (!this.transitionOffsets.every((v, i) => oldOffsets[i] === v)) {
-                this.goto(curOffsetIndex + 1, true)
-              }
-            }, 10)
-          }
-        })
-      }
+            if (!this.transitionOffsets.every((v, i) => oldOffsets[i] === v)) {
+              this.goto(curOffsetIndex + 1, true)
+            }
+          }, 10)
+        }
+      })
     },
 
     calcTransitionOffsets() {
@@ -309,17 +313,23 @@ export default {
         : dir === 'left' ? left : right
     },
 
+    getPageOfSlide(n) {
+      return this.transitionOffsets.indexOf(
+        this.getOffset(-this.getSlideOffset(this.$refs.slides.children[n - 1]), 'near')
+      ) + 1
+    },
+
     goto(page, immediate) {
-      if (page != null && !this.animating && !this.panning) {
+      if (page != null && !this.animating && !this.panning && this.transitionOffsets.length) {
         if (page < 1) {
           page = 1
         } else if (page > this.transitionOffsets.length) {
           page = this.transitionOffsets.length
         }
 
-        if (this.transitionOffsets[page - 1] !== this.offset) {
-          const to = this.transitionOffsets[page - 1]
+        const to = this.transitionOffsets[page - 1]
 
+        if (to !== this.offset) {
           if (immediate) {
             this.$emit('update:current-page', this.transitionOffsets.indexOf(to) + 1)
             this.offset = to
