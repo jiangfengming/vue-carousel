@@ -3,6 +3,7 @@ const webpack = require('webpack')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const VueLoaderPlugin = require('vue-loader/lib/plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
+const { CleanWebpackPlugin } = require('clean-webpack-plugin')
 const hash = require('hash-sum')
 
 module.exports = (env, argv) => {
@@ -119,6 +120,8 @@ module.exports = (env, argv) => {
     const nameLength = 4
 
     conf.plugins.push(
+      new CleanWebpackPlugin(),
+
       new MiniCssExtractPlugin({
         filename: '[contenthash].css',
         chunkFilename: '[contenthash].css'
