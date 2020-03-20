@@ -60,14 +60,7 @@ module.exports = (env, argv) => {
 
         {
           test: /\.html$/,
-          use: [
-            {
-              loader: 'html-loader',
-              options: {
-                attrs: ['img:src', 'link:href']
-              }
-            }
-          ]
+          use: ['html-loader']
         },
 
         {
