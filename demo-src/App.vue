@@ -1,6 +1,6 @@
 <template>
   <main>
-    <v-carousel
+    <Carousel
       class="carousel"
       :current-page.sync="currentPage"
       :total-pages.sync="totalPages"
@@ -8,13 +8,13 @@
       :direction="direction"
       :style="{ width: containerWidth, height: containerHeight, overflow: containerOverflow }"
     >
-      <v-slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 1</v-slide>
-      <v-slide class="slide" :style="{ width: slideWidth, height: slideHeight }"><a href="https://www.example.com/">slide 2</a></v-slide>
-      <v-slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 3</v-slide>
-      <v-slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 4</v-slide>
-      <v-slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 5</v-slide>
-      <v-slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 6</v-slide>
-    </v-carousel>
+      <Slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 1</Slide>
+      <Slide class="slide" :style="{ width: slideWidth, height: slideHeight }"><a href="https://www.example.com/">slide 2</a></Slide>
+      <Slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 3</Slide>
+      <Slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 4</Slide>
+      <Slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 5</Slide>
+      <Slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 6</Slide>
+    </Carousel>
 
     <div class="text-center">
       <span v-for="n in totalPages" :key="n" class="bullet" :class="{ active: n === currentPage }" />
@@ -76,11 +76,11 @@
 </template>
 
 <script>
-import { VCarousel, VSlide } from '../src'
+import { Carousel, Slide } from '../src'
 
 export default {
   el: '#app',
-  components: { VCarousel, VSlide },
+  components: { Carousel, Slide },
 
   data: () => ({
     currentPage: 1,

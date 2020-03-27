@@ -22,7 +22,7 @@ import elementResizeDetectorMaker from 'element-resize-detector'
 const a = -0.01
 
 export default {
-  name: 'VCarousel',
+  name: 'Carousel',
 
   props: {
     direction: {

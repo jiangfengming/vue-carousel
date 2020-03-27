@@ -1,20 +1,20 @@
 
-.slides[data-v-53aead66] {
+.slides[data-v-59b9be59] {
   display: -webkit-box;
   display: flex;
   height: 100%;
 }
-.slides.horizontal[data-v-53aead66] {
+.slides.horizontal[data-v-59b9be59] {
   flex-wrap: nowrap;
 }
-.slides.vertical[data-v-53aead66] {
+.slides.vertical[data-v-59b9be59] {
   -webkit-box-orient: vertical;
   -webkit-box-direction: normal;
           flex-direction: column
 }
 
 
-.slide[data-v-31ed7294] {
+.slide[data-v-bd014df0] {
   flex-shrink: 0;
 }
 

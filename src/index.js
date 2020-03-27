@@ -1,2 +1,2 @@
-export { default as VCarousel } from './VCarousel'
-export { default as VSlide } from './VSlide'
+export { default as Carousel } from './Carousel'
+export { default as Slide } from './Slide'

@@ -19,7 +19,7 @@ export default {
 
   output: {
     format: 'esm',
-    file: 'dist/v-carousel.js'
+    file: 'dist/vue-carousel.js'
   },
 
   external: ['pan-events', 'element-resize-detector']
