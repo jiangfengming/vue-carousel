@@ -1,6 +1,6 @@
 {
   "name": "@jfm/vue-carousel",
-  "version": "0.1.0-10",
+  "version": "0.1.0",
   "description": "A Vue carousel component",
   "main": "dist/vue-carousel.js",
   "scripts": {
