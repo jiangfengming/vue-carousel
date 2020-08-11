@@ -269,6 +269,7 @@ export default {
             start = now
           } else {
             const t = now - start
+
             const s = t >= t1
               ? s1
               : Math.abs(Math.round(v0 * t + a * t * t / 2))

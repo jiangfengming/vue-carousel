@@ -9,7 +9,9 @@
       :style="{ width: containerWidth, height: containerHeight, overflow: containerOverflow }"
     >
       <Slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 1</Slide>
-      <Slide class="slide" :style="{ width: slideWidth, height: slideHeight }"><a href="https://www.example.com/">slide 2</a></Slide>
+      <Slide class="slide" :style="{ width: slideWidth, height: slideHeight }">
+        <a href="https://www.example.com/">slide 2</a>
+      </Slide>
       <Slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 3</Slide>
       <Slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 4</Slide>
       <Slide class="slide" :style="{ width: slideWidth, height: slideHeight }">slide 5</Slide>
